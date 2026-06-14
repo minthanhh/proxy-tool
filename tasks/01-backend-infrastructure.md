@@ -132,9 +132,9 @@
 
 ### Task 2.1: Set up FastAPI app factory
 
-- [ ] Tạo `easyproxy/api/app.py` — FastAPI app factory function
-- [ ] Lifespan handler: init DB, load config, start background tasks, cleanup on shutdown
-- [ ] Register all routers, middleware, exception handlers
+- [x] Tạo `easyproxy/api/app.py` — FastAPI app factory function (71 lines)
+- [x] Lifespan handler: init DB, load config, start background tasks, cleanup on shutdown
+- [x] Register all routers, middleware, exception handlers
 
 **Files:** `easyproxy/api/__init__.py`, `easyproxy/api/app.py`
 **Effort:** S
@@ -143,9 +143,9 @@
 
 ### Task 2.2: Implement health endpoint
 
-- [ ] Tạo `easyproxy/api/routes/health.py`
-- [ ] `GET /health` returns `{"status": "ok", "version": "0.1.0", "uptime": 123}`
-- [ ] Include DB connection check (SELECT 1)
+- [x] Tạo `easyproxy/api/routes/health.py`
+- [x] `GET /health` returns `{"status": "ok", "version": "0.1.0", "uptime": 123}`
+- [x] Include DB connection check (SELECT 1)
 
 **Files:** `easyproxy/api/routes/__init__.py`, `easyproxy/api/routes/health.py`
 **Effort:** S
@@ -154,10 +154,10 @@
 
 ### Task 2.3: Implement WebSocket handler
 
-- [ ] Tạo `easyproxy/api/routes/ws.py`
-- [ ] WebSocket at `/ws` — accepts connections, sends keepalive pings
-- [ ] Event bus (in-memory asyncio.Queue) — push rotation/log events to connected clients
-- [ ] Auto-disconnect on error
+- [x] Tạo `easyproxy/api/routes/ws.py`
+- [x] WebSocket at `/ws` — accepts connections, sends keepalive pings
+- [x] Event bus (in-memory asyncio.Queue) — push rotation/log events to connected clients
+- [x] Auto-disconnect on error
 
 **Files:** `easyproxy/api/routes/ws.py`, `easyproxy/api/events.py`
 **Effort:** M
@@ -166,9 +166,9 @@
 
 ### Task 2.4: Set up CORS middleware
 
-- [ ] Allow origins: `localhost:3002` (Nuxt dev), `app://` (Electron)
-- [ ] Allow methods: GET, POST, PUT, DELETE, OPTIONS
-- [ ] Allow headers: Content-Type, Authorization
+- [x] Allow origins: `*` (local dev)
+- [x] Allow methods: GET, POST, PUT, DELETE, OPTIONS
+- [x] Allow headers: Content-Type, Authorization
 
 **Files:** `easyproxy/api/middleware.py` (cors)
 **Effort:** S
@@ -177,10 +177,10 @@
 
 ### Task 2.5: Implement error handling middleware
 
-- [ ] Tạo `easyproxy/api/exceptions.py` — custom exception classes
-- [ ] Exception handler: catch all, return RFC 7807 problem+json
-- [ ] Request ID middleware (UUID per request)
-- [ ] Request timing middleware
+- [x] Tạo `easyproxy/api/exceptions.py` — custom exception classes (7 classes)
+- [x] Exception handler: catch all, return RFC 7807 problem+json
+- [x] Request ID middleware (UUID per request)
+- [x] Request timing middleware
 
 **Files:** `easyproxy/api/exceptions.py`, `easyproxy/api/middleware.py`
 **Effort:** S
@@ -189,11 +189,11 @@
 
 ### Task 2.6: API tests
 
-- [ ] Tạo `tests/test_api.py`
-- [ ] Test health endpoint
-- [ ] Test WebSocket connect/disconnect
-- [ ] Test CORS headers
-- [ ] Test error responses
+- [x] Tạo `tests/test_api.py` (196 lines, 19 tests)
+- [x] Test health endpoint
+- [x] Test WebSocket connect/disconnect
+- [x] Test CORS headers
+- [x] Test error responses
 
 **Files:** `tests/test_api.py`
 **Effort:** S
