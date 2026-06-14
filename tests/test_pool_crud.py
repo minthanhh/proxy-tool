@@ -2,7 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from easyproxy.api.app import create_app
-from easyproxy.pool.models import ProxyCreate, ProxyUpdate, ProxyProtocol
+from easyproxy.pool.models import ProxyCreate, ProxyUpdate, ProxyProtocol, ProxyStatus
 from easyproxy.pool.manager import PoolManager
 
 
@@ -41,9 +41,41 @@ class TestPoolModels:
         with pytest.raises(ValueError):
             ProxyCreate(address="", port=8080)
 
+    def test_proxy_create_invalid_ip_octets(self):
+        with pytest.raises(ValueError):
+            ProxyCreate(address="999.999.999.999", port=8080)
+
+    def test_proxy_create_invalid_hostname_double_dot(self):
+        with pytest.raises(ValueError):
+            ProxyCreate(address="a..b", port=8080)
+
+    def test_proxy_create_invalid_hostname_trailing_dot(self):
+        with pytest.raises(ValueError):
+            ProxyCreate(address="example.com.", port=8080)
+
+    def test_proxy_create_invalid_hostname_edge_char(self):
+        with pytest.raises(ValueError):
+            ProxyCreate(address="-example.com", port=8080)
+
+    def test_proxy_create_valid_hostname(self):
+        p = ProxyCreate(address="proxy.example.com", port=3128)
+        assert p.address == "proxy.example.com"
+
+    def test_proxy_create_valid_short_hostname(self):
+        p = ProxyCreate(address="a.co", port=80)
+        assert p.address == "a.co"
+
+    def test_proxy_create_valid_ipv6(self):
+        p = ProxyCreate(address="::1", port=1080)
+        assert p.address == "::1"
+
     def test_proxy_create_invalid_port(self):
         with pytest.raises(ValueError):
             ProxyCreate(address="1.2.3.4", port=0)
+
+    def test_proxy_create_port_too_large(self):
+        with pytest.raises(ValueError):
+            ProxyCreate(address="1.2.3.4", port=65536)
 
     def test_proxy_update_allows_partial(self):
         u = ProxyUpdate(region="EU")
@@ -160,12 +192,38 @@ class TestPoolManager:
     @pytest.mark.asyncio
     async def test_stats(self, db_and_manager):
         db, manager = db_and_manager
-        await manager.add(ProxyCreate(address="10.0.0.6", port=8080))
-        await manager.add(ProxyCreate(address="10.0.0.7", port=8080, protocol=ProxyProtocol.SOCKS5))
+        p1 = ProxyCreate(address="10.0.0.6", port=8080)
+        p2 = ProxyCreate(address="10.0.0.7", port=8080, protocol=ProxyProtocol.SOCKS5)
+        pid1 = await manager.add(p1)
+        await manager.add(p2)
         stats = await manager.stats()
         assert stats["total"] >= 2
+        assert stats["alive"] == 0
+        assert stats["dead"] == 0
+        assert stats["untested"] >= 2
         assert "by_protocol" in stats
         assert "by_status" in stats
+
+    @pytest.mark.asyncio
+    async def test_stats_counts_correctly(self, db_and_manager):
+        db, manager = db_and_manager
+        pid = await manager.add(ProxyCreate(address="10.0.0.8", port=8080))
+        await manager.update(pid, ProxyUpdate(status=ProxyStatus.ALIVE))
+        pid2 = await manager.add(ProxyCreate(address="10.0.0.9", port=8080))
+        await manager.update(pid2, ProxyUpdate(status=ProxyStatus.DEAD))
+        await manager.add(ProxyCreate(address="10.0.0.11", port=8080))
+        stats = await manager.stats()
+        assert stats["alive"] == 1
+        assert stats["dead"] == 1
+        assert stats["untested"] == 1
+
+    @pytest.mark.asyncio
+    async def test_update_status(self, db_and_manager):
+        db, manager = db_and_manager
+        pid = await manager.add(ProxyCreate(address="10.0.0.10", port=8080))
+        await manager.update(pid, ProxyUpdate(status=ProxyStatus.ALIVE))
+        proxy = await manager.get(pid)
+        assert proxy["status"] == "alive"
 
 
 class TestPoolAPI:

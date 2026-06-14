@@ -1,5 +1,4 @@
-import re
-from datetime import datetime
+import ipaddress
 from enum import Enum
 from typing import Optional
 
@@ -19,7 +18,7 @@ class ProxyStatus(str, Enum):
 
 
 class ProxyCreate(BaseModel):
-    address: str = Field(..., min_length=7, max_length=45)
+    address: str = Field(..., min_length=1, max_length=253)
     port: int = Field(..., ge=1, le=65535)
     protocol: ProxyProtocol = ProxyProtocol.HTTP
     username: Optional[str] = None
@@ -31,10 +30,26 @@ class ProxyCreate(BaseModel):
     @field_validator("address")
     @classmethod
     def validate_address(cls, v: str) -> str:
-        ipv4 = r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$"
-        hostname = r"^[a-zA-Z0-9]([a-zA-Z0-9\-\.]*[a-zA-Z0-9])?$"
-        if not re.match(ipv4, v) and not re.match(hostname, v):
+        try:
+            ipaddress.ip_address(v)
+            return v
+        except ValueError:
+            pass
+        if not v or len(v) > 253:
             raise ValueError(f"Invalid address: {v}")
+        if v.endswith("."):
+            raise ValueError(f"Invalid address (trailing dot): {v}")
+        labels = v.split(".")
+        all_numeric = all(label.isdigit() for label in labels)
+        if all_numeric:
+            raise ValueError(f"Invalid address (bad IP): {v}")
+        for label in labels:
+            if not label or len(label) > 63:
+                raise ValueError(f"Invalid address (bad label): {v}")
+            if not label[0].isalnum() or not label[-1].isalnum():
+                raise ValueError(f"Invalid address (label edge): {v}")
+            if not all(c.isalnum() or c == "-" for c in label):
+                raise ValueError(f"Invalid address (bad char): {v}")
         return v
 
     @field_validator("source")

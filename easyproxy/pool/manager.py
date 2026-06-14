@@ -151,12 +151,20 @@ class PoolManager:
             "SELECT COUNT(*) FROM proxies WHERE status = 'alive'"
         )
         alive = alive_rows[0][0] if alive_rows else 0
-        dead = total - alive
+        dead_rows = await self.conn.execute_fetchall(
+            "SELECT COUNT(*) FROM proxies WHERE status = 'dead'"
+        )
+        dead = dead_rows[0][0] if dead_rows else 0
+        untested_rows = await self.conn.execute_fetchall(
+            "SELECT COUNT(*) FROM proxies WHERE status = 'untested'"
+        )
+        untested = untested_rows[0][0] if untested_rows else 0
 
         return {
             "total": total,
             "alive": alive,
             "dead": dead,
+            "untested": untested,
             "by_status": {row[0]: row[1] for row in by_status},
             "by_protocol": {row[0]: row[1] for row in by_protocol},
         }
