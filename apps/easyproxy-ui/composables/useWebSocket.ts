@@ -1,12 +1,26 @@
+type EventHandler = (data?: any) => void
+
 export function useWebSocket() {
   const proxyStore = useProxyStore()
   const poolStore = usePoolStore()
 
   const isConnected = ref(false)
+  const eventHandlers = new Map<string, Set<EventHandler>>()
   let ws: WebSocket | null = null
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null
   let reconnectAttempts = 0
   const maxReconnectAttempts = 10
+
+  function on(event: string, handler: EventHandler) {
+    if (!eventHandlers.has(event)) {
+      eventHandlers.set(event, new Set())
+    }
+    eventHandlers.get(event)!.add(handler)
+  }
+
+  function off(event: string, handler: EventHandler) {
+    eventHandlers.get(event)?.delete(handler)
+  }
 
   function connect() {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
@@ -29,6 +43,7 @@ export function useWebSocket() {
       try {
         const msg = JSON.parse(event.data)
         handleEvent(msg)
+        notifyHandlers(msg.type, msg.data)
       } catch {
         // ignore malformed
       }
@@ -43,6 +58,10 @@ export function useWebSocket() {
     ws.onerror = () => {
       ws?.close()
     }
+  }
+
+  function notifyHandlers(type: string, data?: any) {
+    eventHandlers.get(type)?.forEach((fn) => fn(data))
   }
 
   function handleEvent(msg: { type: string; data?: any }) {
@@ -100,5 +119,5 @@ export function useWebSocket() {
   onMounted(connect)
   onUnmounted(disconnect)
 
-  return { isConnected, connect, disconnect, send }
+  return { isConnected, on, off, connect, disconnect, send }
 }
