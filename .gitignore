@@ -21,6 +21,7 @@ coverage/
 node_modules/
 .turbo/
 .nuxt/
+.output/
 *.tsbuildinfo
 
 target/
@@ -33,6 +34,8 @@ target/
 
 *.log
 .easyproxy/
+
+opencode.jsonc
 
 # keep lockfiles
 !pnpm-lock.yaml
