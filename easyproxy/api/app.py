@@ -19,6 +19,7 @@ from easyproxy.api.routes.health import router as health_router
 from easyproxy.api.routes.ws import router as ws_router
 from easyproxy.api.routes.pool import router as pool_router
 from easyproxy.api.routes.proxy import router as proxy_router
+from easyproxy.api.routes.rotation import router as rotation_router
 from easyproxy.config import load_config
 from easyproxy.database import Database
 from easyproxy.logging import setup_logging
@@ -70,6 +71,8 @@ def create_app() -> FastAPI:
     app.include_router(health_router)
     app.include_router(ws_router)
     app.include_router(pool_router)
+    app.include_router(proxy_router)
+    app.include_router(rotation_router)
     app.include_router(proxy_router)
 
     return app
