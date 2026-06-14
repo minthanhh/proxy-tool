@@ -8,9 +8,10 @@
 
 ### Task 4.1: Implement Pydantic models
 
-- [ ] Tạo `easyproxy/pool/models.py` — `ProxyCreate`, `ProxyUpdate`, `ProxyResponse` schemas
-- [ ] Validation: `address` format (IP:port), protocol enum (http/https/socks5)
-- [ ] Optional fields: `username`, `password`, `region`, `notes`
+- [x] Tạo `easyproxy/pool/models.py` — `ProxyCreate`, `ProxyUpdate`, `ProxyResponse` schemas (80 lines)
+- [x] Validation: `address` format (IP:port/hostname), protocol enum (http/https/socks5)
+- [x] Optional fields: `username`, `password`, `region`, `source`
+- [x] Custom validators: address regex, source enum check, port range
 
 **Files:** `easyproxy/pool/__init__.py`, `easyproxy/pool/models.py`
 **Effort:** S
@@ -19,13 +20,13 @@
 
 ### Task 4.2: Implement pool manager
 
-- [ ] Tạo `easyproxy/pool/manager.py` — CRUD operations cho `proxies` table
-- [ ] `add()` — insert, duplicate check (IP:port unique)
-- [ ] `get()` — get by ID
-- [ ] `list()` — paginated, filterable (protocol, region, alive status)
-- [ ] `update()` — update fields
-- [ ] `remove()` — delete by ID
-- [ ] `stats()` — count by status/protocol, alive/dead ratio
+- [x] Tạo `easyproxy/pool/manager.py` — CRUD operations cho `proxies` table (150 lines)
+- [x] `add()` — insert, duplicate check (address + port unique)
+- [x] `get()` — get by ID
+- [x] `list()` — paginated (page/per_page), filterable (protocol, region, status, source)
+- [x] `update()` — partial update via ProxyUpdate model
+- [x] `remove()` — delete by ID
+- [x] `stats()` — count by status/protocol, alive/dead ratio
 
 **Files:** `easyproxy/pool/manager.py`
 **Effort:** M
@@ -34,12 +35,13 @@
 
 ### Task 4.3: Implement pool CRUD API routes
 
-- [ ] Tạo `easyproxy/api/routes/pool.py`
-- [ ] `GET /api/v1/pool` — list (query params: page, per_page, protocol, region, alive)
-- [ ] `POST /api/v1/pool` — add (validate + duplicate check)
-- [ ] `PUT /api/v1/pool/{id}` — update
-- [ ] `DELETE /api/v1/pool/{id}` — remove
-- [ ] `GET /api/v1/pool/stats` — pool statistics
+- [x] Tạo `easyproxy/api/routes/pool.py`
+- [x] `GET /api/v1/pool` — list (query params: page, per_page, protocol, region, status, source)
+- [x] `POST /api/v1/pool` — add (validate + duplicate check → 409)
+- [x] `PUT /api/v1/pool/{id}` — update (partial)
+- [x] `DELETE /api/v1/pool/{id}` — remove
+- [x] `GET /api/v1/pool/stats` — pool statistics
+- [x] Registered trong `app.py` với prefix `/api/v1/pool`
 
 **Files:** `easyproxy/api/routes/pool.py`
 **Effort:** S
@@ -48,10 +50,10 @@
 
 ### Task 4.4: Pool CRUD tests
 
-- [ ] Tạo `tests/test_pool_crud.py`
-- [ ] Test add/get/list/update/delete proxy
-- [ ] Test duplicate detection
-- [ ] Test pagination + filters
+- [x] Tạo `tests/test_pool_crud.py` — 30 tests
+- [x] Test models: create valid/invalid, update partial/empty
+- [x] Test manager: add/get/list/update/remove/stats + duplicate detection + pagination + filtering
+- [x] Test API: full CRUD endpoints + 409 duplicate + 404 not found + stats + filter
 
 **Files:** `tests/test_pool_crud.py`
 **Effort:** S
