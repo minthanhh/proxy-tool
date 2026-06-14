@@ -4,6 +4,7 @@ from fastapi.testclient import TestClient
 from easyproxy.api.app import create_app
 from easyproxy.pool.models import ProxyCreate, ProxyUpdate, ProxyProtocol, ProxyStatus
 from easyproxy.pool.manager import PoolManager
+from easyproxy.pool.importer import parse_txt, parse_csv, Importer
 
 
 @pytest.fixture
@@ -306,3 +307,114 @@ class TestPoolAPI:
         resp = client.get("/api/v1/pool?protocol=socks5")
         assert resp.status_code == 200
         assert resp.json()["total"] >= 1
+
+
+class TestImport:
+    def test_parse_txt_simple(self):
+        proxies = parse_txt("192.168.1.1:8080\n10.0.0.1:3128\n")
+        assert len(proxies) == 2
+        assert proxies[0].address == "192.168.1.1"
+        assert proxies[0].port == 8080
+        assert proxies[1].port == 3128
+
+    def test_parse_txt_extended(self):
+        proxies = parse_txt("proxy.example.com:3128:http:user:pass:US\n")
+        assert len(proxies) == 1
+        assert proxies[0].address == "proxy.example.com"
+        assert proxies[0].protocol == ProxyProtocol.HTTP
+        assert proxies[0].username == "user"
+        assert proxies[0].password == "pass"
+        assert proxies[0].region == "US"
+        assert proxies[0].source == "file"
+
+    def test_parse_txt_skips_comments_and_empty(self):
+        proxies = parse_txt("# comment\n\n192.168.1.1:8080\n  \n")
+        assert len(proxies) == 1
+
+    def test_parse_txt_invalid_line(self):
+        proxies = parse_txt("invalid\n192.168.1.1:8080\n")
+        assert len(proxies) == 1
+
+    def test_parse_txt_invalid_port(self):
+        proxies = parse_txt("192.168.1.1:abc\n192.168.1.2:8080\n")
+        assert len(proxies) == 1
+
+    def test_parse_csv_no_header(self):
+        content = "192.168.1.1,8080\n10.0.0.1,3128,http,user,pass,US\n"
+        proxies = parse_csv(content)
+        assert len(proxies) == 2
+        assert proxies[0].address == "192.168.1.1"
+        assert proxies[0].port == 8080
+        assert proxies[1].region == "US"
+        assert proxies[1].username == "user"
+
+    def test_parse_csv_with_header(self):
+        content = "ip,port,protocol,username,password,region\n192.168.1.1,8080,http,,,US\n"
+        proxies = parse_csv(content)
+        assert len(proxies) == 1
+        assert proxies[0].address == "192.168.1.1"
+        assert proxies[0].region == "US"
+
+    def test_parse_csv_invalid_row(self):
+        content = "192.168.1.1,8080\nsinglefield\n"
+        proxies = parse_csv(content)
+        assert len(proxies) == 1
+
+    @pytest.mark.asyncio
+    async def test_import_txt_via_importer(self, db_and_manager):
+        db, manager = db_and_manager
+        importer = Importer(manager)
+        result = await importer.import_txt("10.0.0.100:8080\n10.0.0.101:3128\n")
+        assert result["imported"] == 2
+        assert result["skipped"] == 0
+
+    @pytest.mark.asyncio
+    async def test_import_txt_skips_duplicates(self, db_and_manager):
+        db, manager = db_and_manager
+        importer = Importer(manager)
+        result = await importer.import_txt("10.0.0.200:8080\n10.0.0.200:8080\n")
+        assert result["imported"] == 1
+        assert result["skipped"] == 1
+
+    @pytest.mark.asyncio
+    async def test_import_csv_via_importer(self, db_and_manager):
+        db, manager = db_and_manager
+        importer = Importer(manager)
+        result = await importer.import_csv("10.0.0.102,8080\n10.0.0.103,3128,http,,,EU\n")
+        assert result["imported"] == 2
+        assert result["skipped"] == 0
+
+    def test_import_api_txt(self, client):
+        resp = client.post("/api/v1/pool/import", json={
+            "format": "txt",
+            "content": "10.0.0.120:8080\n10.0.0.121:3128\n",
+        })
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["imported"] == 2
+
+    def test_import_api_csv(self, client):
+        resp = client.post("/api/v1/pool/import", json={
+            "format": "csv",
+            "content": "10.0.0.130,8080\n10.0.0.131,3128,http\n",
+        })
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["imported"] == 2
+
+    def test_import_api_invalid_format(self, client):
+        resp = client.post("/api/v1/pool/import", json={
+            "format": "json",
+            "content": "{}",
+        })
+        assert resp.status_code == 400
+
+    def test_import_api_duplicates_skipped(self, client):
+        client.post("/api/v1/pool", json={"address": "10.0.0.140", "port": 8080})
+        resp = client.post("/api/v1/pool/import", json={
+            "format": "txt",
+            "content": "10.0.0.140:8080\n10.0.0.141:8080\n",
+        })
+        data = resp.json()
+        assert data["imported"] == 1
+        assert data["skipped"] == 1

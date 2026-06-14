@@ -1,9 +1,16 @@
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Request
+from pydantic import BaseModel
 
 from easyproxy.pool.models import ProxyCreate, ProxyUpdate
 from easyproxy.pool.manager import PoolManager
+from easyproxy.pool.importer import Importer
+
+
+class ImportRequest(BaseModel):
+    format: str
+    content: str
 
 router = APIRouter(prefix="/api/v1/pool", tags=["pool"])
 
@@ -83,3 +90,16 @@ async def delete_proxy(request: Request, proxy_id: int):
     if not success:
         raise HTTPException(status_code=404, detail="Proxy not found")
     return {"message": "Proxy deleted"}
+
+
+@router.post("/import", status_code=200)
+async def import_proxies(request: Request, body: ImportRequest):
+    if body.format not in ("txt", "csv"):
+        raise HTTPException(status_code=400, detail="Unsupported format. Use 'txt' or 'csv'")
+    manager = _get_manager(request)
+    importer = Importer(manager)
+    if body.format == "txt":
+        result = await importer.import_txt(body.content)
+    else:
+        result = await importer.import_csv(body.content)
+    return result
