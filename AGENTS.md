@@ -30,6 +30,12 @@ Push tag `v*` or `harness-cli-v*` → CI builds releases for 5 platforms. Merged
 
 PHASE4 (mechanical verification) is implemented. PHASE5 (evolution infrastructure) is current. See `PHASE2.md`–`PHASE5.md`.
 
+## Issues
+
+- **NEVER create new GitHub issues.** Only use existing issues. Update the body, labels, and state (open/close) of the existing issue for the task.
+- Before starting work, verify the issue number matches the task (e.g. US-003 = #3, not #21).
+- When closing, comment with the commit summary and close the original issue.
+
 ## Skills
 
 11 agent skills in `.agents/skills/`. Use `skill` tool: `nuxt`, `vue`, `vue-best-practices`, `turborepo`, `frontend-design`, `deploy-to-vercel`, `vercel-cli-with-tokens`, `vercel-optimize`, `web-design-guidelines`, `writing-guidelines`, `find-skills`.
