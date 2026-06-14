@@ -69,6 +69,7 @@ class ProxyUpdate(BaseModel):
     password: Optional[str] = None
     region: Optional[str] = None
     status: Optional[ProxyStatus] = None
+    latency_ms: Optional[int] = None
 
 
 class ProxyResponse(BaseModel):

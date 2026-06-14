@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from easyproxy.pool.models import ProxyCreate, ProxyUpdate
 from easyproxy.pool.manager import PoolManager
 from easyproxy.pool.importer import Importer
+from easyproxy.pool.health import HealthCheckRunner
 
 
 class ImportRequest(BaseModel):
@@ -90,6 +91,25 @@ async def delete_proxy(request: Request, proxy_id: int):
     if not success:
         raise HTTPException(status_code=404, detail="Proxy not found")
     return {"message": "Proxy deleted"}
+
+
+@router.post("/test", status_code=200)
+async def test_proxies(request: Request, proxy_id: Optional[int] = None):
+    manager = _get_manager(request)
+    config = request.app.state.config if hasattr(request.app.state, "config") else {}
+    hc = config.get("health_check", {})
+    runner = HealthCheckRunner(
+        manager,
+        test_url=hc.get("test_url", "http://httpbin.org/ip"),
+        timeout_seconds=hc.get("timeout_seconds", 10),
+    )
+    if proxy_id:
+        result = await runner.run_single(proxy_id)
+        if result is None:
+            raise HTTPException(status_code=404, detail="Proxy not found")
+        return {"data": result}
+    results = await runner.run_all()
+    return results
 
 
 @router.post("/import", status_code=200)

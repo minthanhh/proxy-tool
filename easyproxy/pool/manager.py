@@ -107,7 +107,7 @@ class PoolManager:
 
         update_data = updates.model_dump(exclude_none=True)
         for key, value in update_data.items():
-            if key in ("address", "port", "protocol", "username", "password", "region", "status"):
+            if key in ("address", "port", "protocol", "username", "password", "region", "status", "latency_ms"):
                 if isinstance(value, Enum):
                     value = value.value
                 fields.append(f"{key} = ?")
